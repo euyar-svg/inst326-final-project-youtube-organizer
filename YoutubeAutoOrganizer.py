@@ -10,16 +10,24 @@
 # Playlist Generator (Nizar)
 # Video Batch Adder (Nizar)
 
+from shutil import which
+
+
 def input_parser():
-    # This function will parse the input from the user
-    # which is the YouTube playlist URL
-    # It will return the playlist ID and the channel ID
-    pass
+
+ """
+The purpose of this function is to parse/ take the input from the user, which is the YouTube playlist URL
+It will then extract and return the playlist ID and the channel ID
+This information will then be used later in the script to fetch the transcripts of the videos in the playlist and to categorize them.
+"""
+    
 
 def transcript_fetcher(playlist_id):
-    # This function will fetch the transcripts of the videos
-    # in the playlist and will return a list of transcripts
-    pass
+    
+    """ 
+This function will fetch the transcripts of the videos in the playlist with the Youtube Data Api and will return a list of transcripts
+to prepare the necessary data for processing.      
+    """
 
 def sanitize_transcript(transcript):
     """
