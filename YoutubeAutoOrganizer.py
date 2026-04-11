@@ -21,7 +21,6 @@ def transcript_fetcher(playlist_id):
     # in the playlist and will return a list of transcripts
     pass
 
-
 def sanitize_transcript(transcript):
     """
     Clean up transcript text so it can be used for AI processing.
@@ -38,7 +37,6 @@ def sanitize_transcript(transcript):
     Returns:
         cleaned_text: Cleaned text.
     """
-
 
 
 def categorize_video(text):
