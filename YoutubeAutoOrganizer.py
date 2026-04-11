@@ -21,13 +21,13 @@ It will then extract and return the playlist ID and the channel ID
 This information will then be used later in the script to fetch the transcripts of the videos in the playlist and to categorize them.
 """
     
-
 def transcript_fetcher(playlist_id):
     
     """ 
 This function will fetch the transcripts of the videos in the playlist with the Youtube Data Api and will return a list of transcripts
 to prepare the necessary data for processing.      
     """
+
 
 def sanitize_transcript(transcript):
     """
@@ -46,7 +46,6 @@ def sanitize_transcript(transcript):
         cleaned_text: Cleaned text.
     """
 
-
 def categorize_video(text):
     """
     Categorize a video based on its transcript.
@@ -61,6 +60,7 @@ def categorize_video(text):
     Returns:
         category: Category label.
     """
+
 
 def generate_playlists(categories, credentials):
     """
