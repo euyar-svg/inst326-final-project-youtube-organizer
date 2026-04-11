@@ -53,3 +53,35 @@ def categorize_video(text):
     Returns:
         category: Category label.
     """
+
+def generate_playlists(categories, credentials):
+    """
+    takes the list of categories the ai made and creates
+    actual youtube playlists for each one. uses oauth so
+    youtube knows it is us making the playlists.
+
+    args:
+        categories: list of category names from the ai tagger
+        credentials: the oauth2 stuff for youtube api access
+
+    returns:
+        dictionary that maps each category name to its new playlist id
+    """
+    pass
+
+
+def batch_add_videos(video_category_map, playlist_id_map, credentials):
+    """
+    goes through all the videos and adds them to the right playlists.
+    has to be careful with the 10000 unit daily quota so it batches
+    the requests and waits between them so we do not get rate limited.
+
+    args:
+        video_category_map: dictionary of category to list of video ids
+        playlist_id_map: dictionary of category to playlist id
+        credentials: oauth2 stuff again for api calls
+
+    returns:
+        nothing
+    """
+    pass
