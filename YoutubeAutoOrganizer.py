@@ -19,6 +19,13 @@ def input_parser():
 The purpose of this function is to parse/ take the input from the user, which is the YouTube playlist URL
 It will then extract and return the playlist ID and the channel ID
 This information will then be used later in the script to fetch the transcripts of the videos in the playlist and to categorize them.
+
+args:
+none, the function will prompt the user for input
+    
+returns:   
+playlist_id: the id of the playlist to be organized
+    channel_id: the id of the channel that owns the playlist
 """
     
 def transcript_fetcher(playlist_id):
@@ -26,6 +33,11 @@ def transcript_fetcher(playlist_id):
     """ 
 This function will fetch the transcripts of the videos in the playlist with the Youtube Data Api and will return a list of transcripts
 to prepare the necessary data for processing.      
+args:
+playlist_id: the id of the playlist to fetch the transcripts
+
+returns:
+transcripts: a list of transcripts for the videos in the playlist
     """
 
 
