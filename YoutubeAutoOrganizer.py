@@ -62,7 +62,14 @@ returns:
 playlist_id: the id of the playlist to be organized
     channel_id: the id of the channel that owns the playlist
 """
-    
+url = input("Please enter the YouTube playlist URL: ") 
+match = re.match(r"https?://www\.youtube\.com/playlist\?list=([a-zA-Z0-9_-]+)", url)
+playlist_id = match.group(1) if match else None
+
+channel_id = "user_channel_id" # this is a placeholder, you would need to use the YouTube Data API to fetch the channel id based on the playlist id
+return playlist_id, channel_id
+
+
 def transcript_fetcher(playlist_id):
     
     """ 
