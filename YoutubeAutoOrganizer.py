@@ -1,4 +1,5 @@
 # Youtube Auto Organizer
+# Course: INST326: Object-Oriented Programming
 
 # This script automatically organizes your YouTube 
 # watch later playlist into smaller  playlists based on the meta data
@@ -12,6 +13,9 @@
 
 from shutil import which
 
+import re # this will be used to 
+import time
+import json 
 
 def input_parser():
 
@@ -21,7 +25,7 @@ It will then extract and return the playlist ID and the channel ID
 This information will then be used later in the script to fetch the transcripts of the videos in the playlist and to categorize them.
 
 args:
-none, the function will prompt the user for input
+none, the function will prompt the user for input 
     
 returns:   
 playlist_id: the id of the playlist to be organized
