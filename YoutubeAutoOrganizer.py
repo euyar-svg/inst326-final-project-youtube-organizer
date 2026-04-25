@@ -13,10 +13,41 @@
 
 from shutil import which
 
-import re # this will be used to 
-import time
-import json 
+import re # this will be used to parse the playlist url and extract the playlist id and channel id
+import time # this will be used to implement the waiting between batches of requests to avoid rate limiting
+import json # this will be used to save the mapping of categories to playlist ids for later use
 
+class YoutubeAutoOrganizer:
+    """
+    A class to automatically organize YouTube playlists based on video transcripts.
+
+    This class encapsulates the entire workflow of fetching video transcripts,
+    sanitizing them, categorizing videos using AI, and creating new playlists
+    based on those categories.
+
+    Attributes:
+        playlist_id: The ID of the YouTube playlist to organize.
+        categorized_data: A mapping of video IDs to their assigned categories.
+
+    Methods:
+        input_parser(): Parses user input for playlist URL and extracts IDs.
+        transcript_fetcher(playlist_id): Fetches transcripts for videos in a playlist.
+        sanitize_transcript(transcript): Cleans up transcript text for AI processing.
+        categorize_video(text): Categorizes a video based on its transcript.
+        generate_playlists(categories, credentials): Creates new playlists for each category.
+        batch_add_videos(video_category_map, playlist_id_map, credentials): Adds videos to the appropriate playlists in batches.
+    """
+    def __init__(self, playlist_id):
+        self.playlist_id = playlist_id
+        self.categorized_data = {} # this will be a dictionary that maps video ids to their categories
+        
+    def update_categories(self, video_id, category):
+        if video_id in self.categorized_data:
+            self.categorized_data[video_id].append(category)
+        else:
+            self.categorized_data[video_id] = [category]
+            
+            
 def input_parser():
 
  """
