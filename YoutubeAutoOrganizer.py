@@ -3,6 +3,15 @@
 
 # This script automatically organizes your YouTube 
 # watch later playlist into smaller  playlists based on the meta data
+
+# What this script does:
+#   1. Ask the user for a YouTube playlist link
+#   2. Get all the video transcripts from that playlist
+#   3. Clean up the transcripts
+#   4. Use AI to figure out what category each video belongs to
+#   5. Create new playlists for each category
+#   6. Add the videos to the right playlists
+
 # It will operate with  a total of 6 functions:
 # Input Parser (Emre)
 # Transcript Fetcher (emre)
@@ -10,12 +19,17 @@
 # Ai Tagging (Jason)
 # Playlist Generator (Nizar)
 # Video Batch Adder (Nizar)
-
+#-----------------------------------------------------------------------------------------------------------------------------------------
 from shutil import which
 
 import re # this will be used to parse the playlist url and extract the playlist id and channel id
 import time # this will be used to implement the waiting between batches of requests to avoid rate limiting
 import json # this will be used to save the mapping of categories to playlist ids for later use
+import os # this will be used to check if the mapping file already exists and to save the new mapping file
+
+
+#----------------------------------------------------------------------------------------------------------------------------------------
+#class:
 
 class YoutubeAutoOrganizer:
     """
@@ -47,7 +61,10 @@ class YoutubeAutoOrganizer:
         else:
             self.categorized_data[video_id] = [category]
             
-            
+#-----------------------------------------------------------------------------------------------------------------------------------------------
+#function 1: Input Parser (Emre)
+# Ask the user for a YouTube playlist URL and log in to Google
+  
 def input_parser():
 
  """
@@ -62,26 +79,72 @@ returns:
 playlist_id: the id of the playlist to be organized
     channel_id: the id of the channel that owns the playlist
 """
-url = input("Please enter the YouTube playlist URL: ") 
-match = re.match(r"https?://www\.youtube\.com/playlist\?list=([a-zA-Z0-9_-]+)", url)
-playlist_id = match.group(1) if match else None
-
-channel_id = "user_channel_id" # this is a placeholder, you would need to use the YouTube Data API to fetch the channel id based on the playlist id
-return playlist_id, channel_id
-
-
-def transcript_fetcher(playlist_id):
+ # Ask the user for the URL
+    url = input("Paste your YouTube playlist URL here: ").strip()
     
-    """ 
+# Pull out the playlist ID using regex
+    match = re.search(r"list=([a-zA-Z0-9_-]+)", url)
+    playlist_id = match.group(1) if match else None
+
+    # Placeholder for channel ID - you would need to use the YouTube Data API to fetch this
+    channel_id = "user_channel_id"
+
+    return playlist_id, channel_id
+
+
+#--------------------------------------------------------------------------------------------------------------------------------------
+# function 2: Transcript Fetcher (Emre)
+# Get the transcript (captions) for every video in the playlist
+
+def transcript_fetcher(playlist_id, youtube):
+    
+    """
+     
 This function will fetch the transcripts of the videos in the playlist with the Youtube Data Api and will return a list of transcripts
 to prepare the necessary data for processing.      
+
 args:
 playlist_id: the id of the playlist to fetch the transcripts
+youtube: the YouTube Data API client
 
 returns:
 transcripts: a list of transcripts for the videos in the playlist
+
     """
 
+  # First get all the video IDs in the playlist
+    video_ids =  get_video_ids(playlist_id, youtube)
+    print(f"Found {len(video_ids)} videos in the playlist.")
+ 
+    transcripts = {}
+ 
+    # Loop through each video and try to get its transcript
+    for video_id in video_ids:
+        try:
+            # Get the transcript from YouTube
+            transcript_data = YouTubeTranscriptApi.get_transcript(video_id)
+ 
+            # transcript_data is a list of {"text": "...", "start": ...}
+            # We just want the text, so we join it all together
+            full_text = " ".join(entry["text"] for entry in transcript_data)
+ 
+            transcripts[video_id] = full_text
+            print(f"  Got transcript for: {video_id}")
+ 
+        except Exception:
+            # Some videos don't have captions — just skip them
+            print(f"  Skipping {video_id} (no captions available)")
+ 
+        # Small pause so we don't send too many requests at once
+        time.sleep(0.5)
+ 
+    return transcripts
+
+
+
+
+#-----------------------------------------------------------------------------------------------------------------
+#function 3:
 
 def sanitize_transcript(transcript):
     """
@@ -100,6 +163,8 @@ def sanitize_transcript(transcript):
         cleaned_text: Cleaned text.
     """
 
+#function 4:
+
 def categorize_video(text):
     """
     Categorize a video based on its transcript.
@@ -115,6 +180,7 @@ def categorize_video(text):
         category: Category label.
     """
 
+# function 5:
 
 def generate_playlists(categories, credentials):
     """
@@ -131,6 +197,8 @@ def generate_playlists(categories, credentials):
     """
     pass
 
+
+# function 6:
 
 def batch_add_videos(video_category_map, playlist_id_map, credentials):
     """
