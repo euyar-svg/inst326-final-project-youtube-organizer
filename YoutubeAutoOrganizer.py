@@ -79,18 +79,36 @@ returns:
 playlist_id: the id of the playlist to be organized
     channel_id: the id of the channel that owns the playlist
 """
- # Ask the user for the URL
-    url = input("Paste your YouTube playlist URL here: ").strip()
-    
-# Pull out the playlist ID using regex
+
+def input_parser():
+    url = input("Paste your YouTube playlist URL: ").strip()
     match = re.search(r"list=([a-zA-Z0-9_-]+)", url)
-    playlist_id = match.group(1) if match else None
-
-    # Placeholder for channel ID - you would need to use the YouTube Data API to fetch this
-    channel_id = "user_channel_id"
-
-    return playlist_id, channel_id
-
+ 
+    if not match:
+        print("Invalid URL. Must contain 'list=' — e.g. youtube.com/playlist?list=PLxxxx")
+        raise SystemExit(1)
+ 
+    playlist_id = match.group(1)
+    print(f"Playlist ID: {playlist_id}")
+ 
+    credentials = _get_credentials()
+    return playlist_id, credentials
+ 
+ 
+def _get_credentials():
+    credentials = None
+ 
+    if os.path.exists("token.json"):
+        credentials = Credentials.from_authorized_user_file("token.json", SCOPES)
+ 
+    if not credentials or not credentials.valid:
+        flow = InstalledAppFlow.from_client_secrets_file("client_secrets.json", SCOPES)
+        credentials = flow.run_local_server(port=0)
+        with open("token.json", "w") as f:
+            f.write(credentials.to_json())
+ 
+    return credentials
+ 
 
 #--------------------------------------------------------------------------------------------------------------------------------------
 # function 2: Transcript Fetcher (Emre)
