@@ -80,7 +80,6 @@ playlist_id: the id of the playlist to be organized
     channel_id: the id of the channel that owns the playlist
 """
 
-def input_parser():
     url = input("Paste your YouTube playlist URL: ").strip()
     match = re.search(r"list=([a-zA-Z0-9_-]+)", url)
  
@@ -130,35 +129,42 @@ transcripts: a list of transcripts for the videos in the playlist
 
     """
 
-  # First get all the video IDs in the playlist
-    video_ids =  get_video_ids(playlist_id, youtube)
-    print(f"Found {len(video_ids)} videos in the playlist.")
+    video_ids = _get_video_ids(playlist_id, youtube)
+    print(f"Found {len(video_ids)} videos.")
  
     transcripts = {}
- 
-    # Loop through each video and try to get its transcript
     for video_id in video_ids:
         try:
-            # Get the transcript from YouTube
-            transcript_data = YouTubeTranscriptApi.get_transcript(video_id)
- 
-            # transcript_data is a list of {"text": "...", "start": ...}
-            # We just want the text, so we join it all together
-            full_text = " ".join(entry["text"] for entry in transcript_data)
- 
-            transcripts[video_id] = full_text
-            print(f"  Got transcript for: {video_id}")
- 
+            data = YouTubeTranscriptApi.get_transcript(video_id)
+            transcripts[video_id] = " ".join(e["text"] for e in data)
+            print(f"  Got transcript: {video_id}")
         except Exception:
-            # Some videos don't have captions — just skip them
-            print(f"  Skipping {video_id} (no captions available)")
- 
-        # Small pause so we don't send too many requests at once
+            print(f"  Skipping {video_id} (no captions)")
         time.sleep(0.5)
  
     return transcripts
-
-
+ 
+ 
+def _get_video_ids(playlist_id, youtube):
+    ids = []
+    next_page = None
+ 
+    while True:
+        response = youtube.playlistItems().list(
+            part="contentDetails",
+            playlistId=playlist_id,
+            maxResults=50,
+            pageToken=next_page
+        ).execute()
+ 
+        for item in response["items"]:
+            ids.append(item["contentDetails"]["videoId"])
+ 
+        next_page = response.get("nextPageToken")
+        if not next_page:
+            break
+ 
+    return ids
 
 
 #-----------------------------------------------------------------------------------------------------------------
