@@ -186,6 +186,34 @@ def sanitize_transcript(transcript):
     Returns:
         cleaned_text: Cleaned text.
     """
+    if transcript is None or transcript == "":
+        return ""
+
+    text = transcript
+
+    # remove timestamps
+    parts = text.split()
+    cleaned_parts = [] 
+
+    for word in parts:
+        if "[" in word and ":" in word and "]" in word: # like [00:01]
+            continue
+        cleaned_parts.append(word)
+
+    text = " ".join(cleaned_parts)
+
+    # remove simple HTML tags like <b> </b>
+    parts = text.split()
+    cleaned_parts = []
+
+    for word in parts:
+        if word.startswith("<") and word.endswith(">"):
+            continue
+        cleaned_parts.append(word)
+
+    text = " ".join(cleaned_parts)
+
+    
 
 #function 4:
 
