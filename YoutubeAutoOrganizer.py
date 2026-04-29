@@ -203,6 +203,28 @@ def categorize_video(text):
     Returns:
         category: Category label.
     """
+    if not text:
+        return "Unknown"
+
+    text = text.lower()
+
+    # basic keyword matching
+    if "python" in text or "code" in text or "programming" in text:
+        return "Programming"
+
+    elif "game" in text or "gaming" in text or "playthrough" in text:
+        return "Gaming"
+
+    elif "music" in text or "song" in text or "album" in text:
+        return "Music"
+
+    elif "tutorial" in text or "learn" in text or "how to" in text:
+        return "Education"
+
+    elif "news" in text or "interview" in text:
+        return "News"
+
+    return "Other"
 
 # function 5:
 
