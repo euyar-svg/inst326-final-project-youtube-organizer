@@ -241,7 +241,26 @@ def generate_playlists(categories, credentials):
     returns:
         dictionary that maps each category name to its new playlist id
     """
-    pass
+    youtube = build("youtube", "v3", credentials=credentials)
+    playlist_id_map = {}
+
+    for category in categories:
+        request = youtube.playlists().insert(
+            part="snippet,status",
+            body={
+                "snippet": {
+                    "title": category,
+                    "description": f"Auto generated playlist for {category}"
+                },
+                "status": {
+                    "privacyStatus": "private"
+                }
+            }
+        )
+        response = request.execute()
+        playlist_id_map[category] = response["id"]
+
+    return playlist_id_map
 
 
 # function 6:
@@ -260,4 +279,26 @@ def batch_add_videos(video_category_map, playlist_id_map, credentials):
     returns:
         nothing
     """
-    pass
+    youtube = build("youtube", "v3", credentials=credentials)
+
+    for category, video_ids in video_category_map.items():
+        playlist_id = playlist_id_map[category]
+
+        for i, video_id in enumerate(video_ids):
+            request = youtube.playlistItems().insert(
+                part="snippet",
+                body={
+                    "snippet": {
+                        "playlistId": playlist_id,
+                        "resourceId": {
+                            "kind": "youtube#video",
+                            "videoId": video_id
+                        }
+                    }
+                }
+            )
+            request.execute()
+
+            # still need to figure out what to do if the insert fails
+            if i % 10 == 0 and i != 0:
+                time.sleep(2)
