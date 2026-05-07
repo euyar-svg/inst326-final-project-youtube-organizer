@@ -270,35 +270,41 @@ def batch_add_videos(video_category_map, playlist_id_map, credentials):
     goes through all the videos and adds them to the right playlists.
     has to be careful with the 10000 unit daily quota so it batches
     the requests and waits between them so we do not get rate limited.
-
+ 
     args:
         video_category_map: dictionary of category to list of video ids
         playlist_id_map: dictionary of category to playlist id
         credentials: oauth2 stuff again for api calls
-
+ 
     returns:
         nothing
     """
     youtube = build("youtube", "v3", credentials=credentials)
-
+ 
     for category, video_ids in video_category_map.items():
-        playlist_id = playlist_id_map[category]
-
+        playlist_id = playlist_id_map.get(category)
+ 
+        if not playlist_id:
+            print(f"  Warning: no playlist found for category '{category}', skipping.")
+            continue
+ 
         for i, video_id in enumerate(video_ids):
-            request = youtube.playlistItems().insert(
-                part="snippet",
-                body={
-                    "snippet": {
-                        "playlistId": playlist_id,
-                        "resourceId": {
-                            "kind": "youtube#video",
-                            "videoId": video_id
+            try:
+                youtube.playlistItems().insert(
+                    part="snippet",
+                    body={
+                        "snippet": {
+                            "playlistId": playlist_id,
+                            "resourceId": {
+                                "kind": "youtube#video",
+                                "videoId": video_id
+                            }
                         }
                     }
-                }
-            )
-            request.execute()
-
-            # still need to figure out what to do if the insert fails
-            if i % 10 == 0 and i != 0:
+                ).execute()
+ 
+            except Exception as e:
+                print(f"  Failed to add {video_id} to '{category}': {e}")
+ 
+            if (i + 1) % 10 == 0:
                 time.sleep(2)
