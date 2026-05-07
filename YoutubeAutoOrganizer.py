@@ -26,6 +26,7 @@ import re # this will be used to parse the playlist url and extract the playlist
 import time # this will be used to implement the waiting between batches of requests to avoid rate limiting
 import json # this will be used to save the mapping of categories to playlist ids for later use
 import os # this will be used to check if the mapping file already exists and to save the new mapping file
+from googleapiclient.discovery import build # this will be used to create the youtube api client to make requests to create playlists and add videos
 
 
 #----------------------------------------------------------------------------------------------------------------------------------------
