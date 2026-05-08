@@ -26,7 +26,12 @@ import re # this will be used to parse the playlist url and extract the playlist
 import time # this will be used to implement the waiting between batches of requests to avoid rate limiting
 import json # this will be used to save the mapping of categories to playlist ids for later use
 import os # this will be used to check if the mapping file already exists and to save the new mapping file
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
+from googleapiclient.discovery import build
+from youtube_transcript_api import YouTubeTranscriptApi
 
+SCOPES = ["https://www.googleapis.com/auth/youtube"]
 
 #----------------------------------------------------------------------------------------------------------------------------------------
 #class:
@@ -80,34 +85,53 @@ playlist_id: the id of the playlist to be organized
     channel_id: the id of the channel that owns the playlist
 """
 
-    url = input("Paste your YouTube playlist URL: ").strip()
+   url = input("Paste your YouTube playlist URL: ").strip()
+ 
+    # Use regex to find the playlist ID inside the URL
     match = re.search(r"list=([a-zA-Z0-9_-]+)", url)
  
+    # If no match was found, the URL is wrong — stop the program
     if not match:
-        print("Invalid URL. Must contain 'list=' — e.g. youtube.com/playlist?list=PLxxxx")
+        print("Invalid URL. Make sure it contains 'list=' in it.")
+        print("Example: https://www.youtube.com/playlist?list=PLxxxxxx")
         raise SystemExit(1)
  
     playlist_id = match.group(1)
-    print(f"Playlist ID: {playlist_id}")
+    print(f"Found playlist ID: {playlist_id}")
  
+    # Log in to Google
     credentials = _get_credentials()
+ 
     return playlist_id, credentials
  
  
 def _get_credentials():
+    """
+    Log in to Google using OAuth2.
+    If we've logged in before, load the saved login from token.json.
+    If not, open a browser window to log in, then save it for next time.
+ 
+    Returns:
+        credentials : the Google login info we need to use the API
+    """
+ 
     credentials = None
  
+    # Check if we already have a saved login
     if os.path.exists("token.json"):
         credentials = Credentials.from_authorized_user_file("token.json", SCOPES)
  
+    # If no saved login (or it's expired), open the browser to log in
     if not credentials or not credentials.valid:
         flow = InstalledAppFlow.from_client_secrets_file("client_secrets.json", SCOPES)
         credentials = flow.run_local_server(port=0)
+ 
+        # Save the login so we don't have to do this again
         with open("token.json", "w") as f:
             f.write(credentials.to_json())
+        print("Logged in successfully. Login saved to token.json.")
  
     return credentials
- 
 
 #--------------------------------------------------------------------------------------------------------------------------------------
 # function 2: Transcript Fetcher (Emre)
@@ -128,24 +152,43 @@ returns:
 transcripts: a list of transcripts for the videos in the playlist
 
     """
-
-    video_ids = _get_video_ids(playlist_id, youtube)
-    print(f"Found {len(video_ids)} videos.")
+ video_ids = _get_video_ids(playlist_id, youtube)
+    print(f"Found {len(video_ids)} videos in the playlist.")
  
     transcripts = {}
+ 
     for video_id in video_ids:
         try:
+            # Fetch the transcript — returns a list of {"text": "...", "start": ...}
             data = YouTubeTranscriptApi.get_transcript(video_id)
-            transcripts[video_id] = " ".join(e["text"] for e in data)
+ 
+            # Join all the text pieces into one big string
+            transcripts[video_id] = " ".join(entry["text"] for entry in data)
             print(f"  Got transcript: {video_id}")
+ 
         except Exception:
-            print(f"  Skipping {video_id} (no captions)")
+            # Some videos have captions turned off — just skip them
+            print(f"  Skipping {video_id} (no captions available)")
+ 
+        # Wait a little between requests so we don't get blocked
         time.sleep(0.5)
  
     return transcripts
  
  
 def _get_video_ids(playlist_id, youtube):
+    """
+    Page through the playlist and collect all video IDs.
+    Handles playlists longer than 50 videos using nextPageToken.
+ 
+    Args:
+        playlist_id : the playlist ID string
+        youtube     : the YouTube API client
+ 
+    Returns:
+        ids : a list of video ID strings
+    """
+ 
     ids = []
     next_page = None
  
@@ -157,15 +200,17 @@ def _get_video_ids(playlist_id, youtube):
             pageToken=next_page
         ).execute()
  
+        # Pull the video ID out of each item
         for item in response["items"]:
             ids.append(item["contentDetails"]["videoId"])
  
+        # Check if there's another page of results
         next_page = response.get("nextPageToken")
         if not next_page:
-            break
+            break   # no more pages, we're done
  
     return ids
-
+ 
 
 #-----------------------------------------------------------------------------------------------------------------
 #function 3:
@@ -269,7 +314,29 @@ def generate_playlists(categories, credentials):
     returns:
         dictionary that maps each category name to its new playlist id
     """
-    pass
+    youtube = build("youtube", "v3", credentials=credentials)
+    playlist_id_map = {}
+
+    for category in categories:
+        request = youtube.playlists().insert(
+            part="snippet,status",
+            body={
+                "snippet": {
+                    "title": category,
+                    "description": f"Auto generated playlist for {category}"
+                },
+                "status": {
+                    "privacyStatus": "private"
+                }
+            }
+        )
+        try:
+            response = request.execute()
+            playlist_id_map[category] = response["id"]
+        except Exception as e:
+            print(f"  Failed to create playlist for '{category}': {e}")
+
+    return playlist_id_map
 
 
 # function 6:
@@ -279,13 +346,41 @@ def batch_add_videos(video_category_map, playlist_id_map, credentials):
     goes through all the videos and adds them to the right playlists.
     has to be careful with the 10000 unit daily quota so it batches
     the requests and waits between them so we do not get rate limited.
-
+ 
     args:
         video_category_map: dictionary of category to list of video ids
         playlist_id_map: dictionary of category to playlist id
         credentials: oauth2 stuff again for api calls
-
+ 
     returns:
         nothing
     """
-    pass
+    youtube = build("youtube", "v3", credentials=credentials)
+ 
+    for category, video_ids in video_category_map.items():
+        playlist_id = playlist_id_map.get(category)
+ 
+        if not playlist_id:
+            print(f"  Warning: no playlist found for category '{category}', skipping.")
+            continue
+ 
+        for i, video_id in enumerate(video_ids):
+            try:
+                youtube.playlistItems().insert(
+                    part="snippet",
+                    body={
+                        "snippet": {
+                            "playlistId": playlist_id,
+                            "resourceId": {
+                                "kind": "youtube#video",
+                                "videoId": video_id
+                            }
+                        }
+                    }
+                ).execute()
+ 
+            except Exception as e:
+                print(f"  Failed to add {video_id} to '{category}': {e}")
+ 
+            if (i + 1) % 10 == 0:
+                time.sleep(2)
