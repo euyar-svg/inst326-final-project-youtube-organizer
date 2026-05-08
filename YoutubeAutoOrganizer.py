@@ -258,6 +258,7 @@ def sanitize_transcript(transcript):
 
     text = " ".join(cleaned_parts)
 
+    return text
     
 
 #function 4:
@@ -277,7 +278,7 @@ def categorize_video(text):
         category: Category label.
     """
     if not text:
-        return "Unknown"
+        return "Needs Manual Review"
 
     text = text.lower()
 
