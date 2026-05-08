@@ -26,8 +26,12 @@ import re # this will be used to parse the playlist url and extract the playlist
 import time # this will be used to implement the waiting between batches of requests to avoid rate limiting
 import json # this will be used to save the mapping of categories to playlist ids for later use
 import os # this will be used to check if the mapping file already exists and to save the new mapping file
-from googleapiclient.discovery import build # this will be used to create the youtube api client to make requests to create playlists and add videos
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
+from googleapiclient.discovery import build
+from youtube_transcript_api import YouTubeTranscriptApi
 
+SCOPES = ["https://www.googleapis.com/auth/youtube"]
 
 #----------------------------------------------------------------------------------------------------------------------------------------
 #class:
@@ -81,34 +85,53 @@ playlist_id: the id of the playlist to be organized
     channel_id: the id of the channel that owns the playlist
 """
 
-    url = input("Paste your YouTube playlist URL: ").strip()
+   url = input("Paste your YouTube playlist URL: ").strip()
+ 
+    # Use regex to find the playlist ID inside the URL
     match = re.search(r"list=([a-zA-Z0-9_-]+)", url)
  
+    # If no match was found, the URL is wrong — stop the program
     if not match:
-        print("Invalid URL. Must contain 'list=' — e.g. youtube.com/playlist?list=PLxxxx")
+        print("Invalid URL. Make sure it contains 'list=' in it.")
+        print("Example: https://www.youtube.com/playlist?list=PLxxxxxx")
         raise SystemExit(1)
  
     playlist_id = match.group(1)
-    print(f"Playlist ID: {playlist_id}")
+    print(f"Found playlist ID: {playlist_id}")
  
+    # Log in to Google
     credentials = _get_credentials()
+ 
     return playlist_id, credentials
  
  
 def _get_credentials():
+    """
+    Log in to Google using OAuth2.
+    If we've logged in before, load the saved login from token.json.
+    If not, open a browser window to log in, then save it for next time.
+ 
+    Returns:
+        credentials : the Google login info we need to use the API
+    """
+ 
     credentials = None
  
+    # Check if we already have a saved login
     if os.path.exists("token.json"):
         credentials = Credentials.from_authorized_user_file("token.json", SCOPES)
  
+    # If no saved login (or it's expired), open the browser to log in
     if not credentials or not credentials.valid:
         flow = InstalledAppFlow.from_client_secrets_file("client_secrets.json", SCOPES)
         credentials = flow.run_local_server(port=0)
+ 
+        # Save the login so we don't have to do this again
         with open("token.json", "w") as f:
             f.write(credentials.to_json())
+        print("Logged in successfully. Login saved to token.json.")
  
     return credentials
- 
 
 #--------------------------------------------------------------------------------------------------------------------------------------
 # function 2: Transcript Fetcher (Emre)
