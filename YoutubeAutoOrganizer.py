@@ -258,8 +258,11 @@ def generate_playlists(categories, credentials):
                 }
             }
         )
-        response = request.execute()
-        playlist_id_map[category] = response["id"]
+        try:
+            response = request.execute()
+            playlist_id_map[category] = response["id"]
+        except Exception as e:
+            print(f"  Failed to create playlist for '{category}': {e}")
 
     return playlist_id_map
 
