@@ -152,24 +152,43 @@ returns:
 transcripts: a list of transcripts for the videos in the playlist
 
     """
-
-    video_ids = _get_video_ids(playlist_id, youtube)
-    print(f"Found {len(video_ids)} videos.")
+ video_ids = _get_video_ids(playlist_id, youtube)
+    print(f"Found {len(video_ids)} videos in the playlist.")
  
     transcripts = {}
+ 
     for video_id in video_ids:
         try:
+            # Fetch the transcript — returns a list of {"text": "...", "start": ...}
             data = YouTubeTranscriptApi.get_transcript(video_id)
-            transcripts[video_id] = " ".join(e["text"] for e in data)
+ 
+            # Join all the text pieces into one big string
+            transcripts[video_id] = " ".join(entry["text"] for entry in data)
             print(f"  Got transcript: {video_id}")
+ 
         except Exception:
-            print(f"  Skipping {video_id} (no captions)")
+            # Some videos have captions turned off — just skip them
+            print(f"  Skipping {video_id} (no captions available)")
+ 
+        # Wait a little between requests so we don't get blocked
         time.sleep(0.5)
  
     return transcripts
  
  
 def _get_video_ids(playlist_id, youtube):
+    """
+    Page through the playlist and collect all video IDs.
+    Handles playlists longer than 50 videos using nextPageToken.
+ 
+    Args:
+        playlist_id : the playlist ID string
+        youtube     : the YouTube API client
+ 
+    Returns:
+        ids : a list of video ID strings
+    """
+ 
     ids = []
     next_page = None
  
@@ -181,15 +200,17 @@ def _get_video_ids(playlist_id, youtube):
             pageToken=next_page
         ).execute()
  
+        # Pull the video ID out of each item
         for item in response["items"]:
             ids.append(item["contentDetails"]["videoId"])
  
+        # Check if there's another page of results
         next_page = response.get("nextPageToken")
         if not next_page:
-            break
+            break   # no more pages, we're done
  
     return ids
-
+ 
 
 #-----------------------------------------------------------------------------------------------------------------
 #function 3:
